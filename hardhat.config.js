@@ -53,6 +53,11 @@ module.exports = {
       url: `https://mainnet.optimism.io`,
       chainId: 10,
       accounts: [`0x${PRIVATE_KEY}`]
+    },
+    BSC: {
+      url: `https://rpc.ankr.com/bsc`,
+      chainId: 56,
+      accounts: [`0x${PRIVATE_KEY}`],
     }
   },
   etherscan: {

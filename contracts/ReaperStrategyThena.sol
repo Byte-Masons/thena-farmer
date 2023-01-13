@@ -3,28 +3,28 @@
 pragma solidity ^0.8.0;
 
 import "./abstract/ReaperBaseStrategyv3.sol";
-import "./interfaces/IVeloRouter.sol";
-import "./interfaces/IVeloPair.sol";
-import "./interfaces/IVeloGauge.sol";
+import "./interfaces/ITHERouter.sol";
+import "./interfaces/ITHEPair.sol";
+import "./interfaces/ITHEGauge.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-/// @dev Deposit and stake want in Velodrome Gauges. Harvests VELO rewards and compounds.
-contract ReaperStrategyVelodrome is ReaperBaseStrategyv3 {
+/// @dev Deposit and stake want in THENA Gauges. Harvests THE rewards and compounds.
+contract ReaperStrategyTHENA is ReaperBaseStrategyv3 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// 3rd-party contract addresses
-    address public constant VELODROME_ROUTER = address(0xa132DAB612dB5cB9fC9Ac426A0Cc215A3423F9c9);
+    address public constant THENA_ROUTER = address(0x20a304a7d126758dfe6B243D0fc515F83bCA8431);
 
     /// @dev Tokens Used:
-    /// {USDC} - Fees are charged in {USDC}
-    /// {VELO} - Velodrome's reward
+    /// {BUSD} - Fees are charged in {BUSD}
+    /// {THE} - THENA's reward
     /// {gauge} - Gauge where {want} is staked.
     /// {want} - Token staked.
     /// {lpToken0} - {want}'s underlying token.
     /// {lpToken1} - {want}'s underlying token.
-    /// {relay} - lpToken {VELO} gets swapped to before creating liquidity.
-    address public constant USDC = address(0x7F5c764cBc14f9669B88837ca1490cCa17c31607);
-    address public constant VELO = address(0x3c8B650257cFb5f272f799F5e2b4e65093a11a05);
+    /// {relay} - lpToken {THE} gets swapped to before creating liquidity. //likely WBNB
+    address public constant busd = address(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
+    address public constant the = address(0xF4C8E32EaDEC4BFe97E0F595AdD0f4450a863a11);
     address public gauge;
     address public want;
     address public lpToken0;
@@ -33,11 +33,11 @@ contract ReaperStrategyVelodrome is ReaperBaseStrategyv3 {
 
     /// @dev Arrays
     /// {rewards} - Array need to claim rewards
-    /// {veloToRelayPath} - Path from velo to relay
-    /// {veloToUsdcPath} - Path from velo to usdc
+    /// {THEToRelayPath} - Path from THE to relay
+    /// {THEToBUSDPath} - Path from THE to BUSD
     address[] public rewards;
-    address[] public veloToRelayPath;
-    address[] public veloToUsdcPath;
+    address[] public THEToRelayPath;
+    address[] public THEToBUSDPath;
 
     /// @dev Initializes the strategy. Sets parameters and saves routes.
     /// @notice see documentation for each variable above its respective declaration.
@@ -50,14 +50,14 @@ contract ReaperStrategyVelodrome is ReaperBaseStrategyv3 {
     ) public initializer {
         __ReaperBaseStrategy_init(_vault, _feeRemitters, _strategists, _multisigRoles);
         gauge = _gauge;
-        want = IVeloGauge(gauge).stake();
-        (lpToken0, lpToken1) = IVeloPair(want).tokens();
+        want = ITHEGauge(gauge).TOKEN();
+        (lpToken0, lpToken1) = ITHEPair(want).tokens();
 
         relay = lpToken0;
-        // VELO, WETH, USDC
-        veloToUsdcPath = [VELO, address(0x4200000000000000000000000000000000000006), USDC];
-        veloToRelayPath = [VELO, relay];
-        rewards.push(VELO);
+        // THE, WBNB, BUSD
+        THEToBUSDPath = [the, address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c), busd];
+        THEToRelayPath = [the, relay];
+        rewards.push(the);
     }
 
     /// @dev Function that puts the funds to work.
@@ -65,9 +65,8 @@ contract ReaperStrategyVelodrome is ReaperBaseStrategyv3 {
     function _deposit() internal override {
         uint256 wantBalance = IERC20Upgradeable(want).balanceOf(address(this));
         if (wantBalance != 0) {
-            uint256 wantId = IVeloGauge(gauge).tokenIds(want);
             IERC20Upgradeable(want).safeIncreaseAllowance(gauge, wantBalance);
-            IVeloGauge(gauge).deposit(wantBalance, wantId);
+            ITHEGauge(gauge).deposit(wantBalance);
         }
     }
 
@@ -78,18 +77,18 @@ contract ReaperStrategyVelodrome is ReaperBaseStrategyv3 {
 
             // Calculate how much to cWant this is
             uint256 remaining = _amount - wantBal;
-            IVeloGauge(gauge).withdraw(remaining);
+            ITHEGauge(gauge).withdraw(remaining);
         }
         IERC20Upgradeable(want).safeTransfer(vault, _amount);
     }
 
     /// @dev Core function of the strat, in charge of collecting and re-investing rewards.
-    ///      1. Claims {VELO} from the {gauge}.
-    ///      2. Claims fees in {USDC} for the harvest caller and treasury.
-    ///      3. Swaps the remaining rewards for {want} using {VELODROME_ROUTER}.
+    ///      1. Claims {THE} from the {gauge}.
+    ///      2. Claims fees in {BUSD} for the harvest caller and treasury.
+    ///      3. Swaps the remaining rewards for {want} using {THENA_ROUTER}.
     ///      4. Deposits and stakes into {gauge}.
     function _harvestCore() internal override returns (uint256 callerFee) {
-        IVeloGauge(gauge).getReward(address(this), rewards);
+        ITHEGauge(gauge).getReward();
         callerFee = _chargeFees();
         _swapToRelay();
         _addLiquidity();
@@ -106,48 +105,48 @@ contract ReaperStrategyVelodrome is ReaperBaseStrategyv3 {
             return;
         }
 
-        IERC20Upgradeable(_from).safeIncreaseAllowance(VELODROME_ROUTER, _amount);
-        IVeloRouter router = IVeloRouter(VELODROME_ROUTER);
+        IERC20Upgradeable(_from).safeIncreaseAllowance(THENA_ROUTER, _amount);
+        ITHERouter router = ITHERouter(THENA_ROUTER);
 
         (, bool useStable) = router.getAmountOut(_amount, _from, _to);
-        IVeloRouter.route[] memory routes = new IVeloRouter.route[](1);
-        routes[0] = IVeloRouter.route({from: _from, to: _to, stable: useStable});
+        ITHERouter.route[] memory routes = new ITHERouter.route[](1);
+        routes[0] = ITHERouter.route({from: _from, to: _to, stable: useStable});
         router.swapExactTokensForTokens(_amount, 0, routes, address(this), block.timestamp);
     }
 
 
     /// @dev Core harvest function.
-    ///      Charges fees based on the amount of USDC gained from reward
+    ///      Charges fees based on the amount of BUSD gained from reward
     function _chargeFees() internal returns (uint256 callFeeToUser){
-        IERC20Upgradeable velo = IERC20Upgradeable(VELO);
-        IERC20Upgradeable usdc = IERC20Upgradeable(USDC);
-        uint256 usdcBalBefore = usdc.balanceOf(address(this));
+        IERC20Upgradeable THE = IERC20Upgradeable(the);
+        IERC20Upgradeable BUSD = IERC20Upgradeable(busd);
+        uint256 BUSDBalBefore = BUSD.balanceOf(address(this));
         uint256 toSwap;
-        for (uint256 i; i < veloToUsdcPath.length - 1; i++) {
-            if (veloToUsdcPath[i] == VELO) {
-                toSwap = (velo.balanceOf(address(this)) * totalFee) / PERCENT_DIVISOR;
+        for (uint256 i; i < THEToBUSDPath.length - 1; i++) {
+            if (THEToBUSDPath[i] == the) {
+                toSwap = (THE.balanceOf(address(this)) * totalFee) / PERCENT_DIVISOR;
             } else {
-                toSwap = IERC20Upgradeable(veloToUsdcPath[i]).balanceOf(address(this));
+                toSwap = IERC20Upgradeable(THEToBUSDPath[i]).balanceOf(address(this));
             }
-            _swap(veloToUsdcPath[i],veloToUsdcPath[i+1], toSwap);
+            _swap(THEToBUSDPath[i],THEToBUSDPath[i+1], toSwap);
         }
-        uint256 usdcFee = usdc.balanceOf(address(this)) - usdcBalBefore;
+        uint256 BUSDFee = BUSD.balanceOf(address(this)) - BUSDBalBefore;
 
-        if (usdcFee != 0) {
-            callFeeToUser = (usdcFee * callFee) / PERCENT_DIVISOR;
-            uint256 treasuryFeeToVault = (usdcFee * treasuryFee) / PERCENT_DIVISOR;
+        if (BUSDFee != 0) {
+            callFeeToUser = (BUSDFee * callFee) / PERCENT_DIVISOR;
+            uint256 treasuryFeeToVault = (BUSDFee * treasuryFee) / PERCENT_DIVISOR;
             uint256 feeToStrategist = (treasuryFeeToVault * strategistFee) / PERCENT_DIVISOR;
             treasuryFeeToVault -= feeToStrategist;
 
-            usdc.safeTransfer(msg.sender, callFeeToUser);
-            usdc.safeTransfer(treasury, treasuryFeeToVault);
-            usdc.safeTransfer(strategistRemitter, feeToStrategist);
+            BUSD.safeTransfer(msg.sender, callFeeToUser);
+            BUSD.safeTransfer(treasury, treasuryFeeToVault);
+            BUSD.safeTransfer(strategistRemitter, feeToStrategist);
         }
     }
 
     function _swapToRelay() internal {
-        for (uint256 i; i < veloToRelayPath.length - 1; i++) {
-            _swap(veloToRelayPath[i], veloToRelayPath[i+1], IERC20Upgradeable(veloToRelayPath[i]).balanceOf(address(this)));
+        for (uint256 i; i < THEToRelayPath.length - 1; i++) {
+            _swap(THEToRelayPath[i], THEToRelayPath[i+1], IERC20Upgradeable(THEToRelayPath[i]).balanceOf(address(this)));
         }
     }
 
@@ -167,12 +166,12 @@ contract ReaperStrategyVelodrome is ReaperBaseStrategyv3 {
 
         uint256 lpToken0Bal = IERC20Upgradeable(lpToken0).balanceOf(address(this));
         uint256 lpToken1Bal = IERC20Upgradeable(lpToken1).balanceOf(address(this));
-        IERC20Upgradeable(lpToken0).safeIncreaseAllowance(VELODROME_ROUTER, lpToken0Bal);
-        IERC20Upgradeable(lpToken1).safeIncreaseAllowance(VELODROME_ROUTER, lpToken1Bal);
-        IVeloRouter(VELODROME_ROUTER).addLiquidity(
+        IERC20Upgradeable(lpToken0).safeIncreaseAllowance(THENA_ROUTER, lpToken0Bal);
+        IERC20Upgradeable(lpToken1).safeIncreaseAllowance(THENA_ROUTER, lpToken1Bal);
+        ITHERouter(THENA_ROUTER).addLiquidity(
             lpToken0,
             lpToken1,
-            IVeloPair(want).stable(),
+            ITHEPair(want).stable(),
             lpToken0Bal,
             lpToken1Bal,
             0,
@@ -190,19 +189,19 @@ contract ReaperStrategyVelodrome is ReaperBaseStrategyv3 {
 
     /// @dev Returns the amount of {want} staked into the {gauge}
     function balanceInGauge() public view returns (uint256) {
-        return IVeloGauge(gauge).balanceOf(address(this));
+        return ITHEGauge(gauge).balanceOf(address(this));
     }
 
 
     /// @dev Withdraws all funds leaving rewards behind.
     function _reclaimWant() internal override {
-        IVeloGauge(gauge).withdrawAll();
+        ITHEGauge(gauge).withdrawAll();
     }
 
-    function setVeloToRelayPath(address[] memory _path) external {
+    function setTHEToRelayPath(address[] memory _path) external {
         _atLeastRole(STRATEGIST);
-        require(_path[0] == VELO && _path[_path.length - 1] == relay, "INVALID INPUT");
-        veloToRelayPath = _path;
+        require(_path[0] == the && _path[_path.length - 1] == relay, "INVALID INPUT");
+        THEToRelayPath = _path;
     }
 
     function setRelay(address _relay) external {
@@ -211,9 +210,9 @@ contract ReaperStrategyVelodrome is ReaperBaseStrategyv3 {
         relay = _relay;
     }
 
-    function setVeloToUsdcPath(address[] memory _path) external {
+    function setTHEToBUSDPath(address[] memory _path) external {
         _atLeastRole(STRATEGIST);
-        require(_path[0] == VELO && _path[_path.length - 1] == USDC, "INVALID INPUT");
-        veloToUsdcPath = _path;
+        require(_path[0] == the && _path[_path.length - 1] == busd, "INVALID INPUT");
+        THEToBUSDPath = _path;
     }
 }

@@ -39,24 +39,24 @@ describe('Vaults', function () {
 
   const treasuryAddr = '0x1E71AEE6081f62053123140aacC7a06021D77348';
   const paymentSplitterAddress = '0x1E71AEE6081f62053123140aacC7a06021D77348';
-  const wantAddress = '0x207AddB05C548F262219f6bFC6e11c02d0f7fDbe';
-  const gauge = '0x631dCe3a422e1af1AD9d3952B06f9320e2f2ed72';
+  const wantAddress = '0x63Db6ba9E512186C2FAaDaCEF342FB4A40dc577c';
+  const gauge = '0x638b0cc37ffe5a040079F75Ae6C50C9A386dDCaF';
 
-  const wantHolderAddr = '0x1E71AEE6081f62053123140aacC7a06021D77348';
-  const strategistAddr = '0x1E71AEE6081f62053123140aacC7a06021D77348';
-  const defaultAdminAddress = '0x1E71AEE6081f62053123140aacC7a06021D77348';
-  const adminAddress = '0x1E71AEE6081f62053123140aacC7a06021D77348';
-  const guardianAddress = '0x1E71AEE6081f62053123140aacC7a06021D77348';
+  const wantHolderAddr = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
+  const strategistAddr = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
+  const defaultAdminAddress = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
+  const adminAddress = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
+  const guardianAddress = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
 
   // const beetsAddress = '';
   // const beetsHolderAddr = '';
 
   // const daiAddress = '';
-  const usdcAddress = '0x7F5c764cBc14f9669B88837ca1490cCa17c31607';
-  const veloAddress = '0x3c8B650257cFb5f272f799F5e2b4e65093a11a05';
+  const usdcAddress = '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56'; // BUSD
+  const veloAddress = '0xF4C8E32EaDEC4BFe97E0F595AdD0f4450a863a11'; // THENA
   const opAddress = '0x4200000000000000000000000000000000000042';
   const lusdAddress = '0xc40F949F8a4e094D1b49a23ea9241D289B7b2819';
-  const joinErcAddress = '0x4200000000000000000000000000000000000006'; // ETH
+  const joinErcAddress = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'; // wbnb
 
   let owner;
   let wantHolder;
@@ -70,7 +70,7 @@ describe('Vaults', function () {
       params: [
         {
           forking: {
-            jsonRpcUrl: 'https://mainnet.optimism.io',
+            jsonRpcUrl: 'https://rpc.ankr.com/bsc',
             // blockNumber: 37848216,
           },
         },
@@ -97,7 +97,7 @@ describe('Vaults', function () {
 
     // get artifacts
     Vault = await ethers.getContractFactory('ReaperVaultv1_4');
-    Strategy = await ethers.getContractFactory('ReaperStrategyVelodromeUsdcStable');
+    Strategy = await ethers.getContractFactory('ReaperStrategyTHENA');
     Want = await ethers.getContractFactory('@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20');
 
     // deploy contracts
@@ -121,6 +121,7 @@ describe('Vaults', function () {
     );
     await strategy.deployed();
     await vault.initialize(strategy.address);
+    console.log("here");
 
     await strategy.pause();
     // await strategy.addSwapStep(deusAddress, daiAddress, 1 /* total fee */, 0);
@@ -129,11 +130,31 @@ describe('Vaults', function () {
 
     want = await Want.attach(wantAddress);
     usdc = await Want.attach(usdcAddress);
+    /***
+     *    function setTHEToRelayPath(address[] memory _path) external {
+        _atLeastRole(STRATEGIST);
+        require(_path[0] == the && _path[_path.length - 1] == relay, "INVALID INPUT");
+        THEToRelayPath = _path;
+    }
+
+    function setRelay(address _relay) external {
+        _atLeastRole(STRATEGIST);
+        require(_relay == lpToken0 || _relay == lpToken1, "INVALID INPUT");
+        relay = _relay;
+    }
+
+    function setTHEToBUSDPath(address[] memory _path) external {
+        _atLeastRole(STRATEGIST);
+        require(_path[0] == the && _path[_path.length - 1] == busd, "INVALID INPUT");
+        THEToBUSDPath = _path;
+    }
+}
+     */
 
     //approving LP token and vault share spend
     await want.connect(wantHolder).approve(vault.address, ethers.constants.MaxUint256);
-    await strategy.connect(wantHolder).updateSwapPath(veloAddress, usdcAddress, [veloAddress, opAddress, usdcAddress]);
-    await strategy.connect(wantHolder).updateSwapPath(usdcAddress, lusdAddress, [usdcAddress, lusdAddress]);
+    await strategy.connect(wantHolder).setTHEToRelayPath([veloAddress, joinErcAddress]);
+    await strategy.connect(wantHolder).setTHEToBUSDPath([veloAddress, usdcAddress]);
   });
 
   xdescribe('Deploying the vault and strategy', function () {
@@ -310,6 +331,7 @@ describe('Vaults', function () {
 
     it('should provide yield', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
+      console.log(`user balance ${userBalance}`);
       const depositAmount = userBalance.div(10);
       const timeToSkip = 3600;
       await vault.connect(wantHolder).deposit(depositAmount);

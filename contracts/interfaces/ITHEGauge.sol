@@ -91,12 +91,12 @@ interface IGauge {
 // }
 
 // Gauges are used to incentivize pools, they emit reward tokens over 7 days for staked LP tokens
-interface IVeloGauge is IGauge{
+interface ITHEGauge is IGauge{
 
     /// STATE VARIABLES ///
 
     // the LP token that needs to be staked for rewards
-    function stake() external view returns (address);
+    function TOKEN() external view returns (address);
     // the ve token used for gauges
     function _ve() external view returns (address);
     function internal_bribe() external view returns (address);
@@ -112,7 +112,6 @@ interface IVeloGauge is IGauge{
     function rewardPerTokenStored(address) external view returns (uint256);
     function lastEarn(address, address) external view returns (uint256);
     function userRewardPerTokenStored(address, address) external view returns (uint256);
-    function tokenIds(address) external view returns (uint256);
     function totalSupply() external view returns (uint256);
     function balanceOf(address) external view returns (uint256);
     function rewards(uint256) external view returns (address);
@@ -156,7 +155,7 @@ interface IVeloGauge is IGauge{
     function rewardsListLength() external view returns (uint256);
     // returns the last time the reward was modified or periodFinish if the reward has ended
     function lastTimeRewardApplicable(address token) external view returns (uint256);
-    function getReward(address account, address[] memory tokens) external;
+    function getReward() external;
     function rewardPerToken(address token) external view returns (uint256);
     function derivedBalance(address account) external view returns (uint256);
     function batchRewardPerToken(address token, uint256 maxRuns) external;
@@ -165,11 +164,10 @@ interface IVeloGauge is IGauge{
     function batchUpdateRewardPerToken(address token, uint256 maxRuns) external;
     // earned is an estimation, it won't be exact till the supply > rewardPerToken calculations have run
     function earned(address token, address account) external view returns (uint256);
-    function depositAll(uint256 tokenId) external;
-    function deposit(uint256 amount, uint256 tokenId) external;
+    function depositAll() external;
+    function deposit(uint256 amount) external;
     function withdrawAll() external;
     function withdraw(uint256 amount) external;
-    function withdrawToken(uint256 amount, uint256 tokenId) external;
     function left(address token) external view returns (uint256);
     function notifyRewardAmount(address token, uint256 amount) external;
     function swapOutRewardToken(uint256 i, address oldToken, address newToken) external;

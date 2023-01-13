@@ -48,7 +48,7 @@ interface IWETH {
     function withdraw(uint) external returns (uint);
 }
 
-interface IVeloRouter is IRouter {
+interface ITHERouter is IRouter {
      struct route {
         address from;
         address to;
