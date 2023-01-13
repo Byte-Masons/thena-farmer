@@ -157,8 +157,8 @@ describe('Vaults', function () {
     await strategy.connect(wantHolder).setTHEToBUSDPath([veloAddress, usdcAddress]);
   });
 
-  xdescribe('Deploying the vault and strategy', function () {
-    xit('should initiate vault with a 0 balance', async function () {
+  describe('Deploying the vault and strategy', function () {
+    it('should initiate vault with a 0 balance', async function () {
       const totalBalance = await vault.balance();
       const availableBalance = await vault.available();
       const pricePerFullShare = await vault.getPricePerFullShare();
@@ -168,38 +168,38 @@ describe('Vaults', function () {
     });
 
     // Upgrade tests are ok to skip IFF no changes to BaseStrategy are made
-    xit('should not allow implementation upgrades without initiating cooldown', async function () {
-      const StrategyV2 = await ethers.getContractFactory('TestReaperStrategyTombMaiV2');
+    it('should not allow implementation upgrades without initiating cooldown', async function () {
+      const StrategyV2 = await ethers.getContractFactory('ReaperStrategyTHENA2');
       await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV2)).to.be.revertedWith(
         'cooldown not initiated or still active',
       );
     });
 
-    xit('should not allow implementation upgrades before timelock has passed', async function () {
+    it('should not allow implementation upgrades before timelock has passed', async function () {
       await strategy.initiateUpgradeCooldown();
 
-      const StrategyV2 = await ethers.getContractFactory('TestReaperStrategyTombMaiV3');
+      const StrategyV2 = await ethers.getContractFactory('ReaperStrategyTHENA3');
       await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV2)).to.be.revertedWith(
         'cooldown not initiated or still active',
       );
     });
 
-    xit('should allow implementation upgrades once timelock has passed', async function () {
-      const StrategyV2 = await ethers.getContractFactory('ReaperStrategyHappyRoad2');
+    it('should allow implementation upgrades once timelock has passed', async function () {
+      const StrategyV2 = await ethers.getContractFactory('ReaperStrategyTHENA2');
       const timeToSkip = (await strategy.UPGRADE_TIMELOCK()).add(10);
       await strategy.initiateUpgradeCooldown();
       await moveTimeForward(timeToSkip.toNumber());
       await hre.upgrades.upgradeProxy(strategy.address, StrategyV2);
     });
 
-    xit('successive upgrades need to initiate timelock again', async function () {
-      const StrategyV2 = await ethers.getContractFactory('TestReaperStrategyTombMaiV2');
+    it('successive upgrades need to initiate timelock again', async function () {
+      const StrategyV2 = await ethers.getContractFactory('ReaperStrategyTHENA2');
       const timeToSkip = (await strategy.UPGRADE_TIMELOCK()).add(10);
       await strategy.initiateUpgradeCooldown();
       await moveTimeForward(timeToSkip.toNumber());
       await hre.upgrades.upgradeProxy(strategy.address, StrategyV2);
 
-      const StrategyV3 = await ethers.getContractFactory('TestReaperStrategyTombMaiV3');
+      const StrategyV3 = await ethers.getContractFactory('ReaperStrategyTHENA3');
       await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV3)).to.be.revertedWith(
         'cooldown not initiated or still active',
       );
@@ -215,10 +215,10 @@ describe('Vaults', function () {
   });
 
   describe('Vault Tests', function () {
-    xit('should allow deposits and account for them correctly', async function () {
+    it('should allow deposits and account for them correctly', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       const vaultBalance = await vault.balance();
-      const depositAmount = toWantUnit('10');
+      const depositAmount = toWantUnit('1');
       await vault.connect(wantHolder).deposit(depositAmount);
 
       const newVaultBalance = await vault.balance();
@@ -227,7 +227,7 @@ describe('Vaults', function () {
       expect(depositAmount).to.be.closeTo(newVaultBalance, allowedInaccuracy);
     });
 
-    xit('should mint user their pool share', async function () {
+    it('should mint user their pool share', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       // const depositAmount = toWantUnit('0.0000001');
       const depositAmount = userBalance.div(10);
@@ -252,9 +252,9 @@ describe('Vaults', function () {
       expect(afterOwnerVaultBalance).to.equal(0);
     });
 
-    xit('should allow withdrawals', async function () {
+    it('should allow withdrawals', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
-      const depositAmount = toWantUnit('10');
+      const depositAmount = toWantUnit('1');
       await vault.connect(wantHolder).deposit(depositAmount);
 
       await vault.connect(wantHolder).withdrawAll();
@@ -270,7 +270,7 @@ describe('Vaults', function () {
       expect(isSmallBalanceDifference).to.equal(true);
     });
 
-    xit('should allow small withdrawal', async function () {
+    it('should allow small withdrawal', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       const depositAmount = toWantUnit('0.0000001');
       await vault.connect(wantHolder).deposit(depositAmount);
@@ -293,7 +293,7 @@ describe('Vaults', function () {
       expect(isSmallBalanceDifference).to.equal(true);
     });
 
-    xit('should handle small deposit + withdraw', async function () {
+    it('should handle small deposit + withdraw', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       const depositAmount = toWantUnit('0.0000000000001');
       await vault.connect(wantHolder).deposit(depositAmount);
@@ -310,7 +310,7 @@ describe('Vaults', function () {
       expect(isSmallBalanceDifference).to.equal(true);
     });
 
-    xit('should be able to harvest', async function () {
+    it('should be able to harvest', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       const depositAmount = userBalance.div(10);
       await vault.connect(wantHolder).deposit(depositAmount);
@@ -354,7 +354,7 @@ describe('Vaults', function () {
       console.log(`Average APR across ${numHarvests} harvests is ${averageAPR} basis points.`);
     });
   });
-  xdescribe('Strategy', function () {
+  describe('Strategy', function () {
     it('should be able to pause and unpause', async function () {
       await strategy.pause();
       const depositAmount = toWantUnit('1');
