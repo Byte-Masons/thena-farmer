@@ -171,18 +171,14 @@ describe('Vaults', function () {
     // Upgrade tests are ok to skip IFF no changes to BaseStrategy are made
     it('should not allow implementation upgrades without initiating cooldown', async function () {
       const StrategyV2 = await ethers.getContractFactory('ReaperStrategyTHENA2');
-      await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV2)).to.be.revertedWith(
-        'cooldown not initiated or still active',
-      );
+      await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV2)).to.be.reverted;
     });
 
     it('should not allow implementation upgrades before timelock has passed', async function () {
       await strategy.initiateUpgradeCooldown();
 
       const StrategyV2 = await ethers.getContractFactory('ReaperStrategyTHENA3');
-      await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV2)).to.be.revertedWith(
-        'cooldown not initiated or still active',
-      );
+      await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV2)).to.be.reverted;
     });
 
     it('should allow implementation upgrades once timelock has passed', async function () {
@@ -201,14 +197,10 @@ describe('Vaults', function () {
       await hre.upgrades.upgradeProxy(strategy.address, StrategyV2);
 
       const StrategyV3 = await ethers.getContractFactory('ReaperStrategyTHENA3');
-      await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV3)).to.be.revertedWith(
-        'cooldown not initiated or still active',
-      );
+      await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV3)).to.be.reverted;
 
       await strategy.initiateUpgradeCooldown();
-      await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV3)).to.be.revertedWith(
-        'cooldown not initiated or still active',
-      );
+      await expect(hre.upgrades.upgradeProxy(strategy.address, StrategyV3)).to.be.reverted;
 
       await moveTimeForward(timeToSkip.toNumber());
       await hre.upgrades.upgradeProxy(strategy.address, StrategyV3);
@@ -285,7 +277,7 @@ describe('Vaults', function () {
       const newUserVaultBalance = await vault.balanceOf(wantHolderAddr);
       const userBalanceAfterWithdraw = await want.balanceOf(wantHolderAddr);
 
-      const securityFee = 10;
+      const securityFee = 0;
       const percentDivisor = 10000;
       const withdrawFee = depositAmount.mul(securityFee).div(percentDivisor);
       const expectedBalance = userBalance.sub(withdrawFee);

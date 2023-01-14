@@ -1,7 +1,7 @@
 async function main() {
   const Vault = await ethers.getContractFactory('ReaperVaultv1_4');
 
-  const wantAddress = '';
+  const wantAddress = '0x63Db6ba9E512186C2FAaDaCEF342FB4A40dc577c';
   const tokenName = '';
   const tokenSymbol = '';
   const depositFee = 0;
