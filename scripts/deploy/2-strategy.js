@@ -2,7 +2,7 @@ const hre = require('hardhat');
 
 async function main() {
   const vaultAddress = '';
-  const gauge = '';
+  const gauge = '0x9A0C07d7b9d0e0A82ccb12049876e2FB6bf96D0f';
 
   const Strategy = await ethers.getContractFactory('ReaperStrategyTHENA');
 
@@ -17,6 +17,8 @@ async function main() {
   const admin = '0xC17DfA7Eb4300871D5f022c107E07F98c750472e';
   const guardian = '0x30d65Ae22BBbe44208Dd8964DDE31Def0Fc1B9ee';
 
+  const keeper1 = '';
+
   const strategy = await hre.upgrades.deployProxy(
     Strategy,
     [
@@ -24,6 +26,7 @@ async function main() {
       treasuryAddress,
       [strategist1, strategist2, strategist3, strategist4],
       [superAdmin, admin, guardian],
+      [keeper1],
       gauge
     ],
     {kind: 'uups', timeout: 0},

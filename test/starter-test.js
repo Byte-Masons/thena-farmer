@@ -39,14 +39,14 @@ describe('Vaults', function () {
 
   const treasuryAddr = '0x1E71AEE6081f62053123140aacC7a06021D77348';
   const paymentSplitterAddress = '0x1E71AEE6081f62053123140aacC7a06021D77348';
-  const wantAddress = '0x63Db6ba9E512186C2FAaDaCEF342FB4A40dc577c';
-  const gauge = '0x638b0cc37ffe5a040079F75Ae6C50C9A386dDCaF';
+  const wantAddress = '0x1d168C5b5DEa1c6dA0E9FD9bf4B7607e4e9D8EeC';
+  const gauge = '0x9A0C07d7b9d0e0A82ccb12049876e2FB6bf96D0f';
 
-  const wantHolderAddr = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
-  const strategistAddr = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
-  const defaultAdminAddress = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
-  const adminAddress = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
-  const guardianAddress = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
+  const wantHolderAddr = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
+  const strategistAddr = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
+  const defaultAdminAddress = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
+  const adminAddress = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
+  const guardianAddress = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
 
   // const beetsAddress = '';
   // const beetsHolderAddr = '';
@@ -211,7 +211,7 @@ describe('Vaults', function () {
     it('should allow deposits and account for them correctly', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       const vaultBalance = await vault.balance();
-      const depositAmount = toWantUnit('1');
+      const depositAmount = userBalance.div(2);
       await vault.connect(wantHolder).deposit(depositAmount);
 
       const newVaultBalance = await vault.balance();
@@ -247,14 +247,14 @@ describe('Vaults', function () {
 
     it('should allow withdrawals', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
-      const depositAmount = toWantUnit('1');
+      const depositAmount = userBalance.div(3);
       await vault.connect(wantHolder).deposit(depositAmount);
 
       await vault.connect(wantHolder).withdrawAll();
       const newUserVaultBalance = await vault.balanceOf(wantHolderAddr);
       const userBalanceAfterWithdraw = await want.balanceOf(wantHolderAddr);
 
-      const securityFee = 10;
+      const securityFee = 0;
       const percentDivisor = 10000;
       const withdrawFee = depositAmount.mul(securityFee).div(percentDivisor);
       const expectedBalance = userBalance.sub(withdrawFee);
@@ -265,10 +265,10 @@ describe('Vaults', function () {
 
     it('should allow small withdrawal', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
-      const depositAmount = toWantUnit('0.0000001');
+      const depositAmount = toWantUnit('0.000000001');
       await vault.connect(wantHolder).deposit(depositAmount);
 
-      const ownerDepositAmount = toWantUnit('0.1');
+      const ownerDepositAmount = toWantUnit('0.001');
       await want.connect(wantHolder).transfer(owner.address, ownerDepositAmount);
       await want.connect(owner).approve(vault.address, ethers.constants.MaxUint256);
       await vault.connect(owner).deposit(ownerDepositAmount);
@@ -296,7 +296,7 @@ describe('Vaults', function () {
       const newUserVaultBalance = await vault.balanceOf(wantHolderAddr);
       const userBalanceAfterWithdraw = await want.balanceOf(wantHolderAddr);
 
-      const securityFee = 10;
+      const securityFee = 0;
       const percentDivisor = 10000;
       const withdrawFee = (depositAmount * securityFee) / percentDivisor;
       const expectedBalance = userBalance.sub(withdrawFee);
@@ -351,7 +351,7 @@ describe('Vaults', function () {
   describe('Strategy', function () {
     it('should be able to pause and unpause', async function () {
       await strategy.pause();
-      const depositAmount = toWantUnit('1');
+      const depositAmount = toWantUnit('0.003');
       await expect(vault.connect(wantHolder).deposit(depositAmount)).to.be.reverted;
 
       await strategy.unpause();
