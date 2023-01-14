@@ -54,7 +54,7 @@ contract ReaperStrategyTHENA is ReaperBaseStrategyv3 {
         want = ITHEGauge(gauge).TOKEN();
         (lpToken0, lpToken1) = ITHEPair(want).tokens();
 
-        relay = lpToken1;
+        relay = lpToken0;
         // THE, WBNB, BUSD
         THEToBUSDPath = [the, address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c), busd];
         THEToRelayPath = [the, relay];
