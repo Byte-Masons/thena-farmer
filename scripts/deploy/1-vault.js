@@ -1,9 +1,9 @@
 async function main() {
   const Vault = await ethers.getContractFactory('ReaperVaultv1_4');
 
-  const wantAddress = '0x1d168C5b5DEa1c6dA0E9FD9bf4B7607e4e9D8EeC ';
-  const tokenName = 'Thena vAMM-ETH/WBNB Vault';
-  const tokenSymbol = 'rfvAMM-ETH/WBNB';
+  const wantAddress = '0xD328D129E46f9B978416599913102e8CD64593F3 ';
+  const tokenName = 'Thena vAMM-BTCB/WBNB Vault';
+  const tokenSymbol = 'rfvAMM-BTCB/WBNB';
   const depositFee = 0;
   const tvlCap = ethers.constants.MaxUint256;
 
