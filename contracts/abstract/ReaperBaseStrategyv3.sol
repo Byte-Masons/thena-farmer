@@ -9,12 +9,15 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+
 abstract contract ReaperBaseStrategyv3 is
     IStrategy,
     UUPSUpgradeable,
     AccessControlEnumerableUpgradeable,
     PausableUpgradeable
 {
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     uint256 public constant PERCENT_DIVISOR = 10_000;
     uint256 public constant ONE_YEAR = 365 days;
     uint256 public constant UPGRADE_TIMELOCK = 48 hours; // minimum 48 hours for RF
@@ -54,12 +57,9 @@ abstract contract ReaperBaseStrategyv3 is
      * @dev Reaper contracts:
      * {treasury} - Address of the Reaper treasury
      * {vault} - Address of the vault that controls the strategy's funds.
-     * {strategistRemitter} - Address where strategist fee is remitted to.
      */
     address public treasury;
     address public vault;
-    address public strategistRemitter;
-
     /**
      * Fee related constants:
      * {MAX_FEE} - Maximum fee allowed by the strategy. Hard-capped at 10%.
@@ -69,46 +69,41 @@ abstract contract ReaperBaseStrategyv3 is
      *                      flash deposit/harvest attacks.
      */
     uint256 public constant MAX_FEE = 1000;
-    uint256 public constant STRATEGIST_MAX_FEE = 5000;
     uint256 public constant MAX_SECURITY_FEE = 10;
 
     /**
      * @dev Distribution of fees earned, expressed as % of the profit from each harvest.
      * {totalFee} - divided by 10,000 to determine the % fee. Set to 4.5% by default and
-     * lowered as necessary to provide users with the most competitive APY.
-     *
-     * {callFee} - Percent of the totalFee reserved for the harvester (1000 = 10% of total fee: 0.45% by default)
-     * {treasuryFee} - Percent of the totalFee taken by maintainers of the software (9000 = 90% of total fee: 4.05% by default)
-     * {strategistFee} - Percent of the treasuryFee taken by strategist (2500 = 25% of treasury fee: 1.0125% by default)
-     *
+     * lowered as necessary to provide users with the most competitive APY.     *
      * {securityFee} - Fee taxed when a user withdraws funds. Taken to prevent flash deposit/harvest attacks.
      * These funds are redistributed to stakers in the pool.
      */
     uint256 public totalFee;
-    uint256 public callFee;
-    uint256 public treasuryFee;
-    uint256 public strategistFee;
     uint256 public securityFee;
 
-    /**
+    /* @dev List of addresses we want to take a security fee from on withdraw
+    * as a way to prevent those from sandwich attacking the strategy.
+    */
+    EnumerableSetUpgradeable.AddressSet private feeOnWithdrawAddresses;
+
+     /**
      * {TotalFeeUpdated} Event that is fired each time the total fee is updated.
-     * {FeesUpdated} Event that is fired each time callFee+treasuryFee+strategistFee are updated.
+     * {FeesUpdated} Event that is fired each time callFee+treasuryFee are updated.
      * {StratHarvest} Event that is fired each time the strategy gets harvested.
-     * {StrategistRemitterUpdated} Event that is fired each time the strategistRemitter address is updated.
      */
     event TotalFeeUpdated(uint256 newFee);
-    event FeesUpdated(uint256 newCallFee, uint256 newTreasuryFee, uint256 newStrategistFee);
+    event FeesUpdated(uint256 newCallFee, uint256 newTreasuryFee);
     event StratHarvest(address indexed harvester);
-    event StrategistRemitterUpdated(address newStrategistRemitter);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() initializer {}
 
     function __ReaperBaseStrategy_init(
         address _vault,
-        address[] memory _feeRemitters,
+        address _treasury,
         address[] memory _strategists,
-        address[] memory _multisigRoles
+        address[] memory _multisigRoles,
+        address[] memory _keepers
     ) internal onlyInitializing {
         __UUPSUpgradeable_init();
         __AccessControlEnumerable_init();
@@ -116,14 +111,10 @@ abstract contract ReaperBaseStrategyv3 is
 
         harvestLogCadence = 1 minutes;
         totalFee = 450;
-        callFee = 1000;
-        treasuryFee = 9000;
-        strategistFee = 2500;
         securityFee = 10;
 
         vault = _vault;
-        treasury = _feeRemitters[0];
-        strategistRemitter = _feeRemitters[1];
+        treasury = _treasury;
 
         for (uint256 i = 0; i < _strategists.length; i++) {
             _grantRole(STRATEGIST, _strategists[i]);
@@ -133,6 +124,11 @@ abstract contract ReaperBaseStrategyv3 is
         _grantRole(DEFAULT_ADMIN_ROLE, _multisigRoles[0]);
         _grantRole(ADMIN, _multisigRoles[1]);
         _grantRole(GUARDIAN, _multisigRoles[2]);
+
+        	
+        for (uint256 i = 0; i < _keepers.length; i = _uncheckedInc(i)) {
+            _grantRole(KEEPER, _keepers[i]);
+        }
 
         cascadingAccess = [DEFAULT_ADMIN_ROLE, ADMIN, GUARDIAN, STRATEGIST, KEEPER];
         clearUpgradeCooldown();
@@ -153,14 +149,14 @@ abstract contract ReaperBaseStrategyv3 is
      *      be called by the vault. _amount must be valid and security fee
      *      is deducted up-front.
      */
-    function withdraw(uint256 _amount) external override {
+    function withdraw(uint256 _amount, address _user) external {
         require(msg.sender == vault);
         require(_amount != 0);
         require(_amount <= balanceOf());
-
-        uint256 withdrawFee = (_amount * securityFee) / PERCENT_DIVISOR;
-        _amount -= withdrawFee;
-
+        if (feeOnWithdrawAddresses.contains(_user) || feeOnWithdrawAddresses.contains(tx.origin)) {
+            uint256 withdrawFee = (_amount * securityFee) / PERCENT_DIVISOR;
+            _amount -= withdrawFee;
+        }
         _withdraw(_amount);
     }
 
@@ -168,8 +164,9 @@ abstract contract ReaperBaseStrategyv3 is
      * @dev harvest() function that takes care of logging. Subcontracts should
      *      override _harvestCore() and implement their specific logic in it.
      */
-    function harvest() external override whenNotPaused returns (uint256 callerFee) {
-        callerFee = _harvestCore();
+    function harvest() external override whenNotPaused returns (uint256 feeCharged) {
+        _atLeastRole(KEEPER);
+        feeCharged = _harvestCore();
 
         if (block.timestamp >= harvestLog[harvestLog.length - 1].timestamp + harvestLogCadence) {
             harvestLog.push(
@@ -266,22 +263,6 @@ abstract contract ReaperBaseStrategyv3 is
      *
      *      only DEFAULT_ADMIN_ROLE.
      */
-    function updateFees(
-        uint256 _callFee,
-        uint256 _treasuryFee,
-        uint256 _strategistFee
-    ) external returns (bool) {
-        _atLeastRole(DEFAULT_ADMIN_ROLE);
-        require(_callFee + _treasuryFee == PERCENT_DIVISOR);
-        require(_strategistFee <= STRATEGIST_MAX_FEE);
-
-        callFee = _callFee;
-        treasuryFee = _treasuryFee;
-        strategistFee = _strategistFee;
-        emit FeesUpdated(callFee, treasuryFee, strategistFee);
-        return true;
-    }
-
     function updateSecurityFee(uint256 _securityFee) external {
         _atLeastRole(DEFAULT_ADMIN_ROLE);
         require(_securityFee <= MAX_SECURITY_FEE);
@@ -291,22 +272,11 @@ abstract contract ReaperBaseStrategyv3 is
     /**
      * @dev only DEFAULT_ADMIN_ROLE can update treasury address.
      */
-    function updateTreasury(address newTreasury) external returns (bool) {
-        _atLeastRole(DEFAULT_ADMIN_ROLE);
-        treasury = newTreasury;
-        return true;
+	function updateTreasury(address newTreasury) external returns (bool) {	
+        _atLeastRole(DEFAULT_ADMIN_ROLE);	
+        treasury = newTreasury;	
+        return true;	
     }
-
-    /**
-     * @dev Updates the current strategistRemitter. Only DEFAULT_ADMIN_ROLE may do this.
-     */
-    function updateStrategistRemitter(address _newStrategistRemitter) external {
-        _atLeastRole(DEFAULT_ADMIN_ROLE);
-        require(_newStrategistRemitter != address(0));
-        strategistRemitter = _newStrategistRemitter;
-        emit StrategistRemitterUpdated(_newStrategistRemitter);
-    }
-
     /**
      * @dev Project an APR using the vault share price change between harvests at the provided indices.
      */
@@ -336,6 +306,18 @@ abstract contract ReaperBaseStrategyv3 is
         }
 
         return -int256(yearlyUnsignedPercentageChange);
+    }
+
+    function addToFeeOnWithdraw(address _user) external returns (bool) {
+        _atLeastRole(STRATEGIST);
+        return feeOnWithdrawAddresses.add(_user);
+    }
+    function removeFromFeeOnWithdraw(address _user) external returns (bool) {
+        _atLeastRole(GUARDIAN);
+        return feeOnWithdrawAddresses.remove(_user);
+    }
+    function isChargedFeeOnWithdraw(address _user) external view returns (bool) {
+        return feeOnWithdrawAddresses.contains(_user);
     }
 
     /**
@@ -371,30 +353,38 @@ abstract contract ReaperBaseStrategyv3 is
         clearUpgradeCooldown();
     }
 
-    /**
-     * @dev Internal function that checks cascading role privileges. Any higher privileged role
+	    /**
+     * @notice Internal function that checks cascading role privileges. Any higher privileged role
      * should be able to perform all the functions of any lower privileged role. This is
      * accomplished using the {cascadingAccess} array that lists all roles from most privileged
      * to least privileged.
+     * @param role - The role in bytes from the keccak256 hash of the role name
      */
     function _atLeastRole(bytes32 role) internal view {
         uint256 numRoles = cascadingAccess.length;
-        uint256 specifiedRoleIndex;
-        for (uint256 i = 0; i < numRoles; i++) {
+        bool specifiedRoleFound = false;
+        bool senderHighestRoleFound = false;
+        // The specified role must be found in the {cascadingAccess} array.
+        // Also, msg.sender's highest role index <= specified role index.
+        for (uint256 i = 0; i < numRoles; i = _uncheckedInc(i)) {
+            if (!senderHighestRoleFound && hasRole(cascadingAccess[i], msg.sender)) {
+                senderHighestRoleFound = true;
+            }
             if (role == cascadingAccess[i]) {
-                specifiedRoleIndex = i;
+                specifiedRoleFound = true;
                 break;
-            } else if (i == numRoles - 1) {
-                revert();
             }
         }
-
-        for (uint256 i = 0; i <= specifiedRoleIndex; i++) {
-            if (hasRole(cascadingAccess[i], msg.sender)) {
-                break;
-            } else if (i == specifiedRoleIndex) {
-                revert();
-            }
+        require(specifiedRoleFound && senderHighestRoleFound, "Unauthorized access");
+    }
+    /**
+     * @notice For doing an unchecked increment of an index for gas optimization purposes
+     * @param i - The number to increment
+     * @return The incremented number
+     */
+    function _uncheckedInc(uint256 i) internal pure returns (uint256) {
+        unchecked {
+            return i + 1;
         }
     }
 
@@ -413,7 +403,7 @@ abstract contract ReaperBaseStrategyv3 is
     /**
      * @dev subclasses should add their custom harvesting logic in this function
      *      including charging any fees. The amount of fee that is remitted to the
-     *      caller must be returned.
+     *      treasury must be returned.
      */
     function _harvestCore() internal virtual returns (uint256);
 

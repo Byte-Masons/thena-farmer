@@ -112,9 +112,10 @@ describe('Vaults', function () {
       Strategy,
       [
         vault.address,
-        [treasuryAddr, paymentSplitterAddress],
+        treasuryAddr,
         [strategistAddr],
         [defaultAdminAddress, adminAddress, guardianAddress],
+        [strategistAddr],
         gauge
       ],
       {kind: 'uups'},
@@ -290,6 +291,7 @@ describe('Vaults', function () {
       const expectedBalance = userBalance.sub(withdrawFee);
       const smallDifference = expectedBalance.div(200);
       const isSmallBalanceDifference = expectedBalance.sub(userBalanceAfterWithdraw) < smallDifference;
+      console.log(isSmallBalanceDifference);
       expect(isSmallBalanceDifference).to.equal(true);
     });
 

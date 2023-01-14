@@ -200,7 +200,7 @@ contract ReaperVaultv1_4 is ERC20, Ownable, ReentrancyGuard {
      * from the strategy and pay up the token holder. A proportional number of IOU
      * tokens are burned in the process.
      */
-    function withdraw(uint256 _shares) public nonReentrant {
+     function withdraw(uint256 _shares) public nonReentrant {
         require(_shares > 0, "please provide amount");
         uint256 r = (balance() * _shares) / totalSupply();
         _burn(msg.sender, _shares);
@@ -208,7 +208,7 @@ contract ReaperVaultv1_4 is ERC20, Ownable, ReentrancyGuard {
         uint256 b = token.balanceOf(address(this));
         if (b < r) {
             uint256 _withdraw = r - b;
-            IStrategy(strategy).withdraw(_withdraw);
+            IStrategy(strategy).withdraw(_withdraw, msg.sender);
             uint256 _after = token.balanceOf(address(this));
             uint256 _diff = _after - b;
             if (_diff < _withdraw) {

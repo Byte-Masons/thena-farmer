@@ -43,12 +43,13 @@ contract ReaperStrategyTHENA3 is ReaperBaseStrategyv3 {
     /// @notice see documentation for each variable above its respective declaration.
     function initialize(
         address _vault,
-        address[] memory _feeRemitters,
+        address treasury,
         address[] memory _strategists,
         address[] memory _multisigRoles,
+        address[] memory _keepers,
         address _gauge
     ) public initializer {
-        __ReaperBaseStrategy_init(_vault, _feeRemitters, _strategists, _multisigRoles);
+        __ReaperBaseStrategy_init(_vault, treasury, _strategists, _multisigRoles, _keepers);
         gauge = _gauge;
         want = ITHEGauge(gauge).TOKEN();
         (lpToken0, lpToken1) = ITHEPair(want).tokens();
@@ -117,7 +118,7 @@ contract ReaperStrategyTHENA3 is ReaperBaseStrategyv3 {
 
     /// @dev Core harvest function.
     ///      Charges fees based on the amount of BUSD gained from reward
-    function _chargeFees() internal returns (uint256 callFeeToUser){
+       function _chargeFees() internal returns (uint256 callFeeToUser){
         IERC20Upgradeable THE = IERC20Upgradeable(the);
         IERC20Upgradeable BUSD = IERC20Upgradeable(busd);
         uint256 BUSDBalBefore = BUSD.balanceOf(address(this));
@@ -133,14 +134,7 @@ contract ReaperStrategyTHENA3 is ReaperBaseStrategyv3 {
         uint256 BUSDFee = BUSD.balanceOf(address(this)) - BUSDBalBefore;
 
         if (BUSDFee != 0) {
-            callFeeToUser = (BUSDFee * callFee) / PERCENT_DIVISOR;
-            uint256 treasuryFeeToVault = (BUSDFee * treasuryFee) / PERCENT_DIVISOR;
-            uint256 feeToStrategist = (treasuryFeeToVault * strategistFee) / PERCENT_DIVISOR;
-            treasuryFeeToVault -= feeToStrategist;
-
-            BUSD.safeTransfer(msg.sender, callFeeToUser);
-            BUSD.safeTransfer(treasury, treasuryFeeToVault);
-            BUSD.safeTransfer(strategistRemitter, feeToStrategist);
+            BUSD.safeTransfer(treasury, BUSDFee);
         }
     }
 
