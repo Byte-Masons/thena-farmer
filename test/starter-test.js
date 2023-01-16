@@ -39,8 +39,8 @@ describe('Vaults', function () {
 
   const treasuryAddr = '0x1E71AEE6081f62053123140aacC7a06021D77348';
   const paymentSplitterAddress = '0x1E71AEE6081f62053123140aacC7a06021D77348';
-  const wantAddress = '0xEC4484c7F7671914E897b1AEb8418Fe12E320f21';
-  const gauge = '0x3B6321Dc8E795CA8175656981e229b47F4f7c015';
+  const wantAddress = '0xc2dc97A4afE061186Ad5Ca5231f964a97Ce305eb';
+  const gauge = '0xbD3C24fBBA57D5178994EaCfda85985D311DAfbA';
 
   const wantHolderAddr = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
   const strategistAddr = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
@@ -154,7 +154,7 @@ describe('Vaults', function () {
 
     //approving LP token and vault share spend
     await want.connect(wantHolder).approve(vault.address, ethers.constants.MaxUint256);
-    await strategy.connect(wantHolder).setTHEToRelayPath([veloAddress, joinErcAddress]);
+    await strategy.connect(wantHolder).setTHEToRelayPath([veloAddress, usdcAddress]);
     await strategy.connect(wantHolder).setTHEToBUSDPath([veloAddress, usdcAddress]);
   });
 
@@ -337,7 +337,7 @@ describe('Vaults', function () {
       // beets = Want.attach(beetsAddress);
       for (let i = 0; i < numHarvests; i++) {
         // await beets.connect(beetsHolder).transfer(strategy.address, toWantUnit('1'));
-      await moveTimeForward(3600 * 24);
+      await moveTimeForward(3600);
         await strategy.harvest();
       }
 
