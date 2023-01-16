@@ -337,7 +337,7 @@ describe('Vaults', function () {
       // beets = Want.attach(beetsAddress);
       for (let i = 0; i < numHarvests; i++) {
         // await beets.connect(beetsHolder).transfer(strategy.address, toWantUnit('1'));
-      await moveTimeForward(3600 * 24);
+      await moveTimeForward(36 * 24);
         await strategy.harvest();
       }
 
