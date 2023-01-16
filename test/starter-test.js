@@ -39,14 +39,14 @@ describe('Vaults', function () {
 
   const treasuryAddr = '0x1E71AEE6081f62053123140aacC7a06021D77348';
   const paymentSplitterAddress = '0x1E71AEE6081f62053123140aacC7a06021D77348';
-  const wantAddress = '0x63Db6ba9E512186C2FAaDaCEF342FB4A40dc577c';
-  const gauge = '0x638b0cc37ffe5a040079F75Ae6C50C9A386dDCaF';
+  const wantAddress = '0x34B897289fcCb43c048b2Cea6405e840a129E021';
+  const gauge = '0x8a8Ec422Fc51B2A88dD5BE489C40aAF1E1fa73d0';
 
-  const wantHolderAddr = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
-  const strategistAddr = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
-  const defaultAdminAddress = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
-  const adminAddress = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
-  const guardianAddress = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
+  const wantHolderAddr = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
+  const strategistAddr = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
+  const defaultAdminAddress = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
+  const adminAddress = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
+  const guardianAddress = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
 
   // const beetsAddress = '';
   // const beetsHolderAddr = '';
