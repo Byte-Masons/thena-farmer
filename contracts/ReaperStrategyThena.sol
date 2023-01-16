@@ -109,9 +109,9 @@ contract ReaperStrategyTHENA is ReaperBaseStrategyv3 {
         IERC20Upgradeable(_from).safeIncreaseAllowance(THENA_ROUTER, _amount);
         ITHERouter router = ITHERouter(THENA_ROUTER);
 
-        (, bool useStable) = router.getAmountOut(_amount, _from, _to);
+        //(, bool useStable) = router.getAmountOut(_amount, _from, _to);
         ITHERouter.route[] memory routes = new ITHERouter.route[](1);
-        routes[0] = ITHERouter.route({from: _from, to: _to, stable: useStable});
+        routes[0] = ITHERouter.route({from: _from, to: _to, stable: false});
         router.swapExactTokensForTokens(_amount, 0, routes, address(this), block.timestamp);
     }
 
