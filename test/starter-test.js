@@ -42,7 +42,7 @@ describe('Vaults', function () {
   const wantAddress = '0x483653bcF3a10d9a1c334CE16a19471a614F4385';
   const gauge = '0x7144851e51523a88EA6BeC9710cC07f3a9B3baa7';
 
-  const wantHolderAddr = '0xE152CDd7854610A650b56EB78Fa405A0ABD182cA';
+  const wantHolderAddr = '0x972b0F9cDE1266e860E546ac92E783741769400F';
   const strategistAddr = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
   const defaultAdminAddress = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
   const adminAddress = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
@@ -154,11 +154,11 @@ describe('Vaults', function () {
 
     //approving LP token and vault share spend
     await want.connect(wantHolder).approve(vault.address, ethers.constants.MaxUint256);
-    await strategy.connect(strategist).setTHEToRelayPath([veloAddress, joinErcAddress]);
-    await strategy.connect(strategist).setTHEToBUSDPath([veloAddress, joinErcAddress, usdcAddress]);
+    //await strategy.connect(strategist).setTHEToRelayPath([veloAddress, joinErcAddress]);
+    //await strategy.connect(strategist).setTHEToBUSDPath([veloAddress, joinErcAddress, usdcAddress]);
   });
 
-  xdescribe('Deploying the vault and strategy', function () {
+  describe('Deploying the vault and strategy', function () {
     it('should initiate vault with a 0 balance', async function () {
       const totalBalance = await vault.balance();
       const availableBalance = await vault.available();
@@ -208,7 +208,7 @@ describe('Vaults', function () {
   });
 
   describe('Vault Tests', function () {
-    xit('should allow deposits and account for them correctly', async function () {
+    it('should allow deposits and account for them correctly', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       const vaultBalance = await vault.balance();
       const depositAmount = userBalance.div(2);
@@ -220,7 +220,7 @@ describe('Vaults', function () {
       expect(depositAmount).to.be.closeTo(newVaultBalance, allowedInaccuracy);
     });
 
-    xit('should mint user their pool share', async function () {
+    it('should mint user their pool share', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       // const depositAmount = toWantUnit('0.0000001');
       const depositAmount = userBalance.div(10);
@@ -245,7 +245,7 @@ describe('Vaults', function () {
       expect(afterOwnerVaultBalance).to.equal(0);
     });
 
-    xit('should allow withdrawals', async function () {
+    it('should allow withdrawals', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       const depositAmount = userBalance.div(3);
       await vault.connect(wantHolder).deposit(depositAmount);
@@ -263,7 +263,7 @@ describe('Vaults', function () {
       expect(isSmallBalanceDifference).to.equal(true);
     });
 
-    xit('should allow small withdrawal', async function () {
+    it('should allow small withdrawal', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       const depositAmount = toWantUnit('0.000000001');
       await vault.connect(wantHolder).deposit(depositAmount);
@@ -287,7 +287,7 @@ describe('Vaults', function () {
       expect(isSmallBalanceDifference).to.equal(true);
     });
 
-    xit('should handle small deposit + withdraw', async function () {
+    it('should handle small deposit + withdraw', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       const depositAmount = toWantUnit('0.0000000000001');
       await vault.connect(wantHolder).deposit(depositAmount);
@@ -304,7 +304,7 @@ describe('Vaults', function () {
       expect(isSmallBalanceDifference).to.equal(true);
     });
 
-    xit('should be able to harvest', async function () {
+    it('should be able to harvest', async function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       const depositAmount = userBalance.div(10);
       await vault.connect(wantHolder).deposit(depositAmount);
@@ -348,7 +348,7 @@ describe('Vaults', function () {
       console.log(`Average APR across ${numHarvests} harvests is ${averageAPR} basis points.`);
     });
   });
-  xdescribe('Strategy', function () {
+  describe('Strategy', function () {
     it('should be able to pause and unpause', async function () {
       await strategy.pause();
       const depositAmount = toWantUnit('0.0003');
