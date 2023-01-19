@@ -154,8 +154,8 @@ describe('Vaults', function () {
 
     //approving LP token and vault share spend
     await want.connect(wantHolder).approve(vault.address, ethers.constants.MaxUint256);
-    await strategy.connect(wantHolder).setTHEToRelayPath([veloAddress, joinErcAddress]);
-    await strategy.connect(wantHolder).setTHEToBUSDPath([veloAddress, usdcAddress]);
+    //await strategy.connect(wantHolder).setTHEToRelayPath([veloAddress, joinErcAddress]);
+    //await strategy.connect(wantHolder).setTHEToBUSDPath([veloAddress, usdcAddress]);
   });
 
   describe('Deploying the vault and strategy', function () {
