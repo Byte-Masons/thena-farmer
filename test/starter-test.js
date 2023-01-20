@@ -42,7 +42,7 @@ describe('Vaults', function () {
   const wantAddress = '0x483653bcF3a10d9a1c334CE16a19471a614F4385';
   const gauge = '0x7144851e51523a88EA6BeC9710cC07f3a9B3baa7';
 
-  const wantHolderAddr = '0x972b0F9cDE1266e860E546ac92E783741769400F';
+  const wantHolderAddr = '0xb1028c2d61337589e515d6BdB949ed97935518b2';
   const strategistAddr = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
   const defaultAdminAddress = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
   const adminAddress = '0x4C3490dF15edFa178333445ce568EC6D99b5d71c';
@@ -154,8 +154,9 @@ describe('Vaults', function () {
 
     //approving LP token and vault share spend
     await want.connect(wantHolder).approve(vault.address, ethers.constants.MaxUint256);
-    //await strategy.connect(strategist).setTHEToRelayPath([veloAddress, joinErcAddress]);
-    //await strategy.connect(strategist).setTHEToBUSDPath([veloAddress, joinErcAddress, usdcAddress]);
+    await strategy.connect(strategist).setRelay(joinErcAddress);
+    await strategy.connect(strategist).setTHEToRelayPath([veloAddress, joinErcAddress]);
+    await strategy.connect(strategist).setTHEToBUSDPath([veloAddress, joinErcAddress, usdcAddress]);
   });
 
   describe('Deploying the vault and strategy', function () {
