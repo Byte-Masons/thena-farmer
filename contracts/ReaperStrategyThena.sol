@@ -53,11 +53,6 @@ contract ReaperStrategyTHENA is ReaperBaseStrategyv3 {
         gauge = _gauge;
         want = ITHEGauge(gauge).TOKEN();
         (lpToken0, lpToken1) = ITHEPair(want).tokens();
-
-        relay = lpToken1;
-        // THE, WBNB, BUSD
-        THEToBUSDPath = [the, address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c), busd];
-        THEToRelayPath = [the];
         rewards.push(the);
     }
 
@@ -109,7 +104,6 @@ contract ReaperStrategyTHENA is ReaperBaseStrategyv3 {
         IERC20Upgradeable(_from).safeIncreaseAllowance(THENA_ROUTER, _amount);
         ITHERouter router = ITHERouter(THENA_ROUTER);
 
-        //(, bool useStable) = router.getAmountOut(_amount, _from, _to);
         ITHERouter.route[] memory routes = new ITHERouter.route[](1);
         routes[0] = ITHERouter.route({from: _from, to: _to, stable: false});
         router.swapExactTokensForTokens(_amount, 0, routes, address(this), block.timestamp);
@@ -118,7 +112,7 @@ contract ReaperStrategyTHENA is ReaperBaseStrategyv3 {
 
     /// @dev Core harvest function.
     ///      Charges fees based on the amount of BUSD gained from reward
-    function _chargeFees() internal returns (uint256 callFeeToUser){
+    function _chargeFees() internal returns (uint256 feeCharged){
         IERC20Upgradeable THE = IERC20Upgradeable(the);
         IERC20Upgradeable BUSD = IERC20Upgradeable(busd);
         uint256 BUSDBalBefore = BUSD.balanceOf(address(this));
@@ -131,10 +125,10 @@ contract ReaperStrategyTHENA is ReaperBaseStrategyv3 {
             }
             _swap(THEToBUSDPath[i],THEToBUSDPath[i+1], toSwap);
         }
-        uint256 BUSDFee = BUSD.balanceOf(address(this)) - BUSDBalBefore;
+        feeCharged = BUSD.balanceOf(address(this)) - BUSDBalBefore;
 
-        if (BUSDFee != 0) {
-            BUSD.safeTransfer(treasury, BUSDFee);
+        if (feeCharged != 0) {
+            BUSD.safeTransfer(treasury, feeCharged);
         }
     }
 
