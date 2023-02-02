@@ -39,8 +39,8 @@ describe('Vaults', function () {
 
   const treasuryAddr = '0x1E71AEE6081f62053123140aacC7a06021D77348';
   const paymentSplitterAddress = '0x1E71AEE6081f62053123140aacC7a06021D77348';
-  const wantAddress = '0x63Db6ba9E512186C2FAaDaCEF342FB4A40dc577c';
-  const gauge = '0x638b0cc37ffe5a040079F75Ae6C50C9A386dDCaF';
+  const wantAddress = '0x7e61c053527A7Af0c700aD9D2C8207E386273222';
+  const gauge = '0x11E79bC17cb1fF3D4f6A025412ac84960B20Ba81';
 
   const wantHolderAddr = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
   const strategistAddr = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
@@ -57,6 +57,7 @@ describe('Vaults', function () {
   const opAddress = '0x4200000000000000000000000000000000000042';
   const lusdAddress = '0xc40F949F8a4e094D1b49a23ea9241D289B7b2819';
   const joinErcAddress = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'; // wbnb
+  const stableAddress = '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' //usdc
 
   let owner;
   let wantHolder;
@@ -97,7 +98,7 @@ describe('Vaults', function () {
 
     // get artifacts
     Vault = await ethers.getContractFactory('ReaperVaultv1_4');
-    Strategy = await ethers.getContractFactory('ReaperStrategyTHENA');
+    Strategy = await ethers.getContractFactory('ReaperStrategyTHENABUSDStable');
     Want = await ethers.getContractFactory('@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20');
 
     // deploy contracts
@@ -154,8 +155,10 @@ describe('Vaults', function () {
 
     //approving LP token and vault share spend
     await want.connect(wantHolder).approve(vault.address, ethers.constants.MaxUint256);
-    await strategy.connect(wantHolder).setTHEToRelayPath([veloAddress]);
-    await strategy.connect(wantHolder).setTHEToBUSDPath([veloAddress, usdcAddress]);
+    await strategy.connect(wantHolder).updateSwapPath(usdcAddress, stableAddress, [usdcAddress, stableAddress]);
+    await strategy.connect(wantHolder).updateSwapPath(veloAddress, usdcAddress, [veloAddress, joinErcAddress, usdcAddress]);
+
+    await strategy.connect(wantHolder).setStableSwap(usdcAddress, stableAddress, true);
   });
 
   xdescribe('Deploying the vault and strategy', function () {
@@ -309,7 +312,7 @@ describe('Vaults', function () {
       const depositAmount = userBalance.div(10);
       await vault.connect(wantHolder).deposit(depositAmount);
       // await moveBlocksForward(100);
-      await moveTimeForward(3600 * 24);
+      await moveTimeForward(100);
       const readOnlyStrat = await strategy.connect(ethers.provider);
       const predictedCallerFee = await readOnlyStrat.callStatic.harvest();
       console.log(`predicted caller fee ${ethers.utils.formatEther(predictedCallerFee)}`);
@@ -327,7 +330,7 @@ describe('Vaults', function () {
       const userBalance = await want.balanceOf(wantHolderAddr);
       console.log(`user balance ${userBalance}`);
       const depositAmount = userBalance.div(10);
-      const timeToSkip = 3600;
+      const timeToSkip = 100;
       await vault.connect(wantHolder).deposit(depositAmount);
       const initialVaultBalance = await vault.balance();
 
@@ -337,7 +340,7 @@ describe('Vaults', function () {
       // beets = Want.attach(beetsAddress);
       for (let i = 0; i < numHarvests; i++) {
         // await beets.connect(beetsHolder).transfer(strategy.address, toWantUnit('1'));
-      await moveTimeForward(3600 * 24);
+      await moveTimeForward(100);
         await strategy.harvest();
       }
 
