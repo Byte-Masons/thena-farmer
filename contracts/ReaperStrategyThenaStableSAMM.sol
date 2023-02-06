@@ -127,7 +127,6 @@ contract ReaperStrategyTHENABUSDStable is ReaperBaseStrategyv3 {
     function _withdraw(uint256 _amount) internal override {
         uint256 wantBal = IERC20Upgradeable(want).balanceOf(address(this));
         if (wantBal < _amount) {
-
             // Calculate how much to cWant this is
             uint256 remaining = _amount - wantBal;
             ITHEGauge(gauge).withdraw(remaining);
@@ -169,19 +168,18 @@ contract ReaperStrategyTHENABUSDStable is ReaperBaseStrategyv3 {
         IERC20Upgradeable(_from).safeIncreaseAllowance(THENA_ROUTER, _amount);
         for (uint256 i = 0; i < routes.length; i++) {
             (output, useStable) = router.getAmountOut(prevRouteOutput, path[i], path[i + 1]);
-            routes[i] = ITHERouter.route({from: path[i], to: path[i + 1], stable: stableSwap[path[i]][path[i+1]]});
+            routes[i] = ITHERouter.route({from: path[i], to: path[i + 1], stable: stableSwap[path[i]][path[i + 1]]});
             prevRouteOutput = output;
         }
         router.swapExactTokensForTokens(_amount, 0, routes, address(this), block.timestamp);
     }
 
-
     /// @dev Core harvest function.
     ///      Charges fees based on the amount of BUSD gained from reward
-    function _chargeFees() internal returns (uint256 BUSDFee){
+    function _chargeFees() internal returns (uint256 BUSDFee) {
         IERC20Upgradeable BUSD = IERC20Upgradeable(busd);
-        _swap(the,busd,IERC20Upgradeable(the).balanceOf(address(this)));
-        uint256 BUSDFee = (BUSD.balanceOf(address(this)) * totalFee) / PERCENT_DIVISOR;
+        _swap(the, busd, IERC20Upgradeable(the).balanceOf(address(this)));
+        BUSDFee = (BUSD.balanceOf(address(this)) * totalFee) / PERCENT_DIVISOR;
 
         if (BUSDFee != 0) {
             BUSD.safeTransfer(treasury, BUSDFee);
@@ -231,9 +229,15 @@ contract ReaperStrategyTHENABUSDStable is ReaperBaseStrategyv3 {
     }
 
     /// @dev Update {SwapPath} for a specified pair of tokens.
-    function updateSwapPath(address _tokenIn, address _tokenOut, address[] calldata _path) external {
+    function updateSwapPath(
+        address _tokenIn,
+        address _tokenOut,
+        address[] calldata _path
+    ) external {
         _atLeastRole(STRATEGIST);
-        require(_tokenIn != _tokenOut && _path.length >= 2 && _path[0] == _tokenIn && _path[_path.length - 1] == _tokenOut);
+        require(
+            _tokenIn != _tokenOut && _path.length >= 2 && _path[0] == _tokenIn && _path[_path.length - 1] == _tokenOut
+        );
         swapPath[_tokenIn][_tokenOut] = _path;
     }
 
@@ -254,7 +258,6 @@ contract ReaperStrategyTHENABUSDStable is ReaperBaseStrategyv3 {
     function balanceInGauge() public view returns (uint256) {
         return ITHEGauge(gauge).balanceOf(address(this));
     }
-
 
     /// @dev Withdraws all funds leaving rewards behind.
     function _reclaimWant() internal override {
@@ -292,8 +295,12 @@ contract ReaperStrategyTHENABUSDStable is ReaperBaseStrategyv3 {
         amountB = (amountA * reserveB) / reserveA;
     }
 
-    function setStableSwap(address _to, address _from, bool _stable) external {
+    function setStableSwap(
+        address _to,
+        address _from,
+        bool _stable
+    ) external {
         _atLeastRole(STRATEGIST);
-        stableSwap[_to][_from] = _stable;   
+        stableSwap[_to][_from] = _stable;
     }
 }

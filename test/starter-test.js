@@ -39,8 +39,8 @@ describe('Vaults', function () {
 
   const treasuryAddr = '0x1E71AEE6081f62053123140aacC7a06021D77348';
   const paymentSplitterAddress = '0x1E71AEE6081f62053123140aacC7a06021D77348';
-  const wantAddress = '0x7e61c053527A7Af0c700aD9D2C8207E386273222';
-  const gauge = '0x11E79bC17cb1fF3D4f6A025412ac84960B20Ba81';
+  const wantAddress = '0x6321B57b6fdc14924be480c54e93294617E672aB';
+  const gauge = '0x41adA56DD5702906549a71666541a39B0DbcEb12';
 
   const wantHolderAddr = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
   const strategistAddr = '0x60BC5E0440C867eEb4CbcE84bB1123fad2b262B1';
@@ -57,7 +57,7 @@ describe('Vaults', function () {
   const opAddress = '0x4200000000000000000000000000000000000042';
   const lusdAddress = '0xc40F949F8a4e094D1b49a23ea9241D289B7b2819';
   const joinErcAddress = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'; // wbnb
-  const stableAddress = '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' //usdc
+  const stableAddress = '0x55d398326f99059fF775485246999027B3197955' //usdc
 
   let owner;
   let wantHolder;

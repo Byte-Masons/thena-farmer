@@ -1,8 +1,8 @@
 const hre = require('hardhat');
 
 async function main() {
-  const vaultAddress = '0x1f854b4889691012F33B5863Bf6DAB4ceEdD96a9';
-  const gauge = '0x11E79bC17cb1fF3D4f6A025412ac84960B20Ba81';
+  const vaultAddress = '0x3670803de0EE59AEd15Ad70825BBbede64EDf15E';
+  const gauge = '0x41adA56DD5702906549a71666541a39B0DbcEb12';
 
   const Strategy = await ethers.getContractFactory('ReaperStrategyTHENABUSDStable');
 
@@ -41,7 +41,7 @@ async function main() {
     [
       vaultAddress,
       treasuryAddress,
-      [strategist1, strategist2, strategist3, strategist4],
+      [strategist1, strategist2, strategist3, strategist4, strategist5],
       [superAdmin, admin, guardian],
       keepers,
       gauge

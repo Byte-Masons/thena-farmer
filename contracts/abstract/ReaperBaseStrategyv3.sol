@@ -111,7 +111,7 @@ abstract contract ReaperBaseStrategyv3 is
 
         harvestLogCadence = 1 minutes;
         totalFee = 450;
-        securityFee = 10;
+        securityFee = 0;
 
         vault = _vault;
         treasury = _treasury;
@@ -149,7 +149,7 @@ abstract contract ReaperBaseStrategyv3 is
      *      be called by the vault. _amount must be valid and security fee
      *      is deducted up-front.
      */
-    function withdraw(uint256 _amount, address _user) external {
+    function withdraw(uint256 _amount, address _user) external override {
         require(msg.sender == vault);
         require(_amount != 0);
         require(_amount <= balanceOf());
